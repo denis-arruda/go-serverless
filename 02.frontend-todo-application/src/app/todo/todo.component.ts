@@ -31,7 +31,18 @@ export class TodoComponent implements OnInit {
         .subscribe(
           data => {
             console.log(data);
-            this.todo = data;
+            // Support both DynamoDB and plain object responses
+            const getValue = (field, type = 'S') => {
+              if (field && typeof field === 'object' && field[type] !== undefined) return field[type];
+              return field;
+            };
+            this.todo = new Todo(
+              getValue(data.id),
+              getValue(data.username),
+              getValue(data.description),
+              getValue(data.done, 'BOOL'),
+              getValue(data.targetDate) ? new Date(getValue(data.targetDate)) : null
+            );
           }
         );
     }
