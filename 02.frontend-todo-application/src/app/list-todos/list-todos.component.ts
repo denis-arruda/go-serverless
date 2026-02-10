@@ -38,7 +38,14 @@ export class ListTodosComponent implements OnInit {
     this.todoService.retrieveAllTodos(this.authenticationService.getAuthenticatedUser()).subscribe(
       response => {
         console.log(response);
-        this.todos = response;
+        // Map DynamoDB response to Todo model
+        this.todos = (response as any[]).map(item => new Todo(
+          item.id?.S,
+          item.username?.S,
+          item.description?.S,
+          item.done?.BOOL,
+          item.targetDate?.S ? new Date(item.targetDate.S) : null
+        ));
       }
     );
   }

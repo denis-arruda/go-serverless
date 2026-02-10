@@ -31,7 +31,18 @@ export class TodoComponent implements OnInit {
         .subscribe(
           data => {
             console.log(data);
-            this.todo = data;
+            // Support both DynamoDB and plain object responses
+            const getValue = (field, type = 'S') => {
+              if (field && typeof field === 'object' && field[type] !== undefined) return field[type];
+              return field;
+            };
+            this.todo = new Todo(
+              getValue(data.id),
+              getValue(data.username),
+              getValue(data.description),
+              getValue(data.done, 'BOOL'),
+              getValue(data.targetDate) ? new Date(getValue(data.targetDate)) : null
+            );
           }
         );
     }
@@ -39,7 +50,21 @@ export class TodoComponent implements OnInit {
 
   saveTodo() {
     if (this.id == "-1") {
-      this.todoService.createTodo(this.basicAuthenticationService.getAuthenticatedUser(), this.todo)
+      // Convert this.todo to DynamoDB format
+      const toDynamoDbFormat = (todo: Todo) => ({
+        id: { S: todo.id },
+        username: { S: todo.username },
+        description: { S: todo.description },
+        done: { BOOL: todo.done },
+        targetDate: {
+          S: todo.targetDate
+            ? (typeof todo.targetDate === 'string'
+                ? new Date(todo.targetDate).toISOString()
+                : todo.targetDate.toISOString())
+            : null
+        }
+      });
+      this.todoService.createTodo(this.basicAuthenticationService.getAuthenticatedUser(), toDynamoDbFormat(this.todo))
         .subscribe(
           data => {
             console.log(data);
@@ -47,7 +72,15 @@ export class TodoComponent implements OnInit {
           }
         );
     } else {
-      this.todoService.updateTodo(this.basicAuthenticationService.getAuthenticatedUser(), this.id, this.todo)
+      // Convert this.todo to DynamoDB format
+      const toDynamoDbFormat = (todo: Todo) => ({
+        id: { S: todo.id },
+        username: { S: todo.username },
+        description: { S: todo.description },
+        done: { BOOL: todo.done },
+        targetDate: { S: todo.targetDate ? todo.targetDate.toISOString() : null }
+      });
+      this.todoService.updateTodo(this.basicAuthenticationService.getAuthenticatedUser(), this.id, toDynamoDbFormat(this.todo))
         .subscribe(
           data => {
             console.log(data);
