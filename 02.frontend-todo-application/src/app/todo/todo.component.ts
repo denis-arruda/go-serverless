@@ -50,7 +50,21 @@ export class TodoComponent implements OnInit {
 
   saveTodo() {
     if (this.id == "-1") {
-      this.todoService.createTodo(this.basicAuthenticationService.getAuthenticatedUser(), this.todo)
+      // Convert this.todo to DynamoDB format
+      const toDynamoDbFormat = (todo: Todo) => ({
+        id: { S: todo.id },
+        username: { S: todo.username },
+        description: { S: todo.description },
+        done: { BOOL: todo.done },
+        targetDate: {
+          S: todo.targetDate
+            ? (typeof todo.targetDate === 'string'
+                ? new Date(todo.targetDate).toISOString()
+                : todo.targetDate.toISOString())
+            : null
+        }
+      });
+      this.todoService.createTodo(this.basicAuthenticationService.getAuthenticatedUser(), toDynamoDbFormat(this.todo))
         .subscribe(
           data => {
             console.log(data);
@@ -58,7 +72,15 @@ export class TodoComponent implements OnInit {
           }
         );
     } else {
-      this.todoService.updateTodo(this.basicAuthenticationService.getAuthenticatedUser(), this.id, this.todo)
+      // Convert this.todo to DynamoDB format
+      const toDynamoDbFormat = (todo: Todo) => ({
+        id: { S: todo.id },
+        username: { S: todo.username },
+        description: { S: todo.description },
+        done: { BOOL: todo.done },
+        targetDate: { S: todo.targetDate ? todo.targetDate.toISOString() : null }
+      });
+      this.todoService.updateTodo(this.basicAuthenticationService.getAuthenticatedUser(), this.id, toDynamoDbFormat(this.todo))
         .subscribe(
           data => {
             console.log(data);
